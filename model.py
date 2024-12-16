@@ -7,7 +7,7 @@ class IntoInelastic(nn.Module):
         super(IntoInelastic, self).__init__()
 
         # Encoder
-        self.enc1 = self.conv_block(2, 64)
+        self.enc1 = self.conv_block(2, 64) #2 layer convolutional block; 2 input channel to 64 channels
         self.enc2 = self.conv_block(64, 128)
         self.enc3 = self.conv_block(128, 256)
         self.enc4 = self.conv_block(256, 512)
@@ -16,10 +16,10 @@ class IntoInelastic(nn.Module):
         self.bottleneck = self.conv_block(512, 1024)
 
         # Decoder
-        self.dec4 = self.upconv_block(1024, 512)
-        self.dec3 = self.upconv_block(512, 256)
-        self.dec2 = self.upconv_block(256, 128)
-        self.dec1 = self.upconv_block(128, 64)
+        self.dec4 = self.upconv_block(1024+512, 512)
+        self.dec3 = self.upconv_block(512+256, 256)
+        self.dec2 = self.upconv_block(256+128, 128)
+        self.dec1 = self.upconv_block(128+64, 64)
 
         # Final output layer
         self.final = nn.Conv2d(64, 1, kernel_size=1)
@@ -57,12 +57,13 @@ class IntoInelastic(nn.Module):
         dec1 = self.dec1(torch.cat((self.upsample(dec2, enc1), enc1), dim=1))
 
         # Final layer
-        return self.final(dec1)
+        final_output = self.final(dec1)
+        return F.interpolate(final_output, size=x.shape[2:], mode='bilinear', align_corners=True)
 
     def upsample(self, x, target):
         """Upsample `x` to the size of `target`."""
         return F.interpolate(x, size=target.shape[2:], mode='bilinear', align_corners=True)
-
+        
 # Instantiate the model
 model = IntoInelastic()
 
