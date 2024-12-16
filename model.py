@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class UNetStage2(nn.Module):
+class IntoInelastic(nn.Module):
     def __init__(self):
-        super(UNetStage2, self).__init__()
+        super(IntoInelastic, self).__init__()
 
         # Encoder
         self.enc1 = self.conv_block(2, 64)
@@ -64,10 +64,10 @@ class UNetStage2(nn.Module):
         return F.interpolate(x, size=target.shape[2:], mode='bilinear', align_corners=True)
 
 # Instantiate the model
-model = UNetStage2()
+model = IntoInelastic()
 
 # Example input tensor
-# Input has 1 channel for (1) and 1 channel for (2), so total input channels = 2
+# Input has 1 channel for the (1) "elastic" image  and 1 channel for (2) atomic numbers (z), so total input channels = 2
 input_tensor = torch.randn(1, 2, 256, 256)  # Batch size = 1, H = W = 256
 output = model(input_tensor)
 
