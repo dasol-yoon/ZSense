@@ -41,14 +41,18 @@ class IntoInelastic(nn.Module):
         )
 
     def forward(self, x):
+        # Reshape input to flatten real-space dimensions
+        batch_size, channels, real1, real2, diff1, diff2 = x.shape
+        x = x.view(batch_size, channels, real1 * real2, diff1, diff2)  # Flatten real-space dimensions
+
         # Encoder
         enc1 = self.enc1(x)
-        enc2 = self.enc2(F.max_pool3d(enc1, (1, 2, 2)))  # Pool only in the last two dimensions
-        enc3 = self.enc3(F.max_pool3d(enc2, (1, 2, 2)))
-        enc4 = self.enc4(F.max_pool3d(enc3, (1, 2, 2)))
+        enc2 = self.enc2(F.max_pool3d(enc1, (2, 2, 2)))  # Pool across flattened real-space and diffraction space
+        enc3 = self.enc3(F.max_pool3d(enc2, (2, 2, 2)))
+        enc4 = self.enc4(F.max_pool3d(enc3, (2, 2, 2)))
 
         # Bottleneck
-        bottleneck = self.bottleneck(F.max_pool3d(enc4, (1, 2, 2)))
+        bottleneck = self.bottleneck(F.max_pool3d(enc4, (2, 2, 2)))
 
         # Decoder
         dec4 = self.dec4(torch.cat((self.upsample(bottleneck, enc4), enc4), dim=1))
@@ -58,12 +62,15 @@ class IntoInelastic(nn.Module):
 
         # Final layer
         final_output = self.final(dec1)
-        return F.interpolate(final_output, size=(x.shape[2], x.shape[3], x.shape[4]), mode='trilinear', align_corners=True)
+
+        # Reshape output to restore real-space dimensions
+        final_output = final_output.view(batch_size, 1, real1, real2, diff1, diff2)
+        return final_output
 
     def upsample(self, x, target):
         """Upsample `x` to the size of `target`."""
         return F.interpolate(x, size=target.shape[2:], mode='trilinear', align_corners=True)
-
+        
 # Instantiate the model
 model = IntoInelastic()
 
